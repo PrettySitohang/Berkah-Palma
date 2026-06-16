@@ -1,73 +1,55 @@
-import { BiListOl, BiCog, BiLogOut, BiHeart, BiCart } from "react-icons/bi";
-import { RiDashboardFill } from "react-icons/ri";
-import { NavLink } from "react-router-dom";
+import React from 'react';
+import { FiHome, FiUsers, FiBox, FiShoppingCart, FiX } from 'react-icons/fi';
+import { NavLink } from 'react-router-dom';
+import logoBerkah from '../assets/logo_berkah.png'; 
 
-export default function Sidebar() {
-  // Styling menu yang lebih clean sesuai branding Berkah Palma
-  const menuClass = ({ isActive }) =>
-    `flex cursor-pointer items-center rounded-xl p-4 transition-all duration-300 group
-     ${
-       isActive
-         ? "text-green-700 bg-green-50 font-extrabold"
-         : "text-gray-400 hover:text-green-600 hover:bg-gray-50 font-medium"
-     }`;
-
+const Sidebar = () => {
   return (
-    <div id="sidebar" className="flex flex-col h-full p-6 bg-white border-r border-gray-100">
-      
-      {/* Navigation Section */}
-      <div id="sidebar-menu" className="flex-1 overflow-y-auto">
-        <p className="text-[11px] font-bold text-gray-300 uppercase mb-6 tracking-widest">Navigation</p>
-        
-        <ul className="space-y-2">
-          <li>
-            <NavLink to="/dashboard" className={menuClass}>
-              <RiDashboardFill className="mr-4 text-2xl" />
-              Dashboard
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/order-history" className={menuClass}>
-              <BiListOl className="mr-4 text-2xl" />
-              Order History
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/wishlist" className={menuClass}>
-              <BiHeart className="mr-4 text-2xl" />
-              Wishlist
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/shopping-cart" className={menuClass}>
-              <BiCart className="mr-4 text-2xl" />
-              Shopping Cart
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/settings" className={menuClass}>
-              <BiCog className="mr-4 text-2xl" />
-              Settings
-            </NavLink>
-          </li>
-          <li>
-            <button className="w-full flex items-center rounded-xl p-4 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-300 font-medium">
-              <BiLogOut className="mr-4 text-2xl" />
-              Log-out
-            </button>
-          </li>
-        </ul>
-      </div>
+    <>
+      <input type="checkbox" id="sidebar-toggle" className="peer hidden" />
+      <label htmlFor="sidebar-toggle" className="fixed inset-0 bg-slate-900/60 z-40 hidden peer-checked:block md:hidden cursor-pointer backdrop-blur-sm transition-opacity" />
 
-      {/* Footer Sidebar / Branding Section */}
-      <div id="sidebar-footer" className="mt-auto pt-6 border-t border-gray-50">
-        <div className="text-[11px]">
-          <span className="block font-bold text-gray-700 uppercase tracking-tighter">
-            Berkah <span className="text-green-600">Palma</span>
-          </span>
-          <p className="text-gray-400">© 2026 Management System</p>
+      <aside className="fixed top-0 left-0 bottom-0 w-[280px] z-50 bg-[#2a4530] transform -translate-x-full peer-checked:translate-x-0 md:translate-x-0 transition-transform duration-300 shadow-2xl flex flex-col rounded-r-2xl md:rounded-none border-r border-[#1e3223]">
+        
+        <div className="h-28 flex items-center justify-between px-6 bg-[#2a4530] rounded-tr-2xl md:rounded-none">
+          <div className="flex items-center gap-3">
+            <img 
+              src={logoBerkah} 
+              alt="Logo Berkah Palma" 
+              className="w-10 h-10 object-contain bg-white rounded-full p-0.5" 
+            />
+            <h1 className="text-white font-bold text-lg tracking-wide">BERKAH PALMA</h1>
+          </div>
+          <label htmlFor="sidebar-toggle" className="md:hidden text-white/50 hover:text-white text-2xl cursor-pointer transition-colors">
+            <FiX />
+          </label>
         </div>
-      </div>
-    </div>
+        
+        <nav className="px-4 py-6 space-y-2 flex-1">
+          {/* Dashboard */}
+          <NavLink to="/admin/dashboard" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive ? 'bg-white/20 text-white shadow-inner' : 'text-emerald-100/70 hover:bg-white/10 hover:text-white'}`}>
+            <FiHome /> Dashboard
+          </NavLink>
+          
+          {/* Manajemen Akun */}
+          <NavLink to="/admin/akun" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive ? 'bg-white/20 text-white shadow-inner' : 'text-emerald-100/70 hover:bg-white/10 hover:text-white'}`}>
+            <FiUsers /> Manajemen Akun
+          </NavLink>
+
+          {/* Manajemen Bibit */}
+          <NavLink to="/admin/bibit" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive ? 'bg-white/20 text-white shadow-inner' : 'text-emerald-100/70 hover:bg-white/10 hover:text-white'}`}>
+            <FiBox /> Manajemen Bibit
+          </NavLink>
+
+          {/* Kelola Pesanan */}
+          <NavLink to="/admin/pesanan" className={({isActive}) => `flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${isActive ? 'bg-white/20 text-white shadow-inner' : 'text-emerald-100/70 hover:bg-white/10 hover:text-white'}`}>
+            <FiShoppingCart /> Kelola Pesanan
+          </NavLink>
+        </nav>
+
+      </aside>
+    </>
   );
-}
+};
+
+export default Sidebar;

@@ -1,0 +1,29 @@
+[
+  { 
+    "id": 1, 
+    "name": "Aisyah Fitri", 
+    "username": "aisyah.admin", 
+    "role": "ADMIN", 
+    "status": true, 
+    "initials": "AF", 
+    "color": "bg-emerald-100 text-emerald-800"
+  },
+  { 
+    "id": 2, 
+    "name": "Dimas Alfajri", 
+    "username": "dimas.karyawan", 
+    "role": "KARYAWAN", 
+    "status": true, 
+    "initials": "DA", 
+    "color": "bg-indigo-100 text-indigo-800"
+  },
+  { 
+    "id": 3, 
+    "name": "Pretti Meysari", 
+    "username": "pretti.karyawan", 
+    "role": "KARYAWAN", 
+    "status": false, 
+    "initials": "PM", 
+    "color": "bg-slate-200 text-slate-600"
+  }
+]
