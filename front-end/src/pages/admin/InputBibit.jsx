@@ -1,23 +1,134 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { HiChevronLeft } from 'react-icons/hi2';
-import { FiInfo } from 'react-icons/fi';
+import { FiInfo, FiCheckCircle } from 'react-icons/fi'; // 👈 Tambah icon check untuk notifikasi
 import Bg from '../../../public/img/foto_bibit_sawit_1.png';
 
 export default function InputBibit() {
+  const navigate = useNavigate();
+
+  // STAF DATA FORM
+  const [formData, setFormData] = useState({
+    nama_varietas: '',
+    umur_bulan: '',
+    deskripsi: '',
+    jumlah_stok: '',
+  });
+
+  const [loading, setLoading] = useState(false);
+  
+  // 🟢 STATE BARU UNTUK NOTIFIKASI TEMPORER (SISTEM ELEGAN)
+  const [notifikasi, setNotifikasi] = useState({
+    muncul: false,
+    pesan: '',
+    tipe: 'sukses'
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  // HANDLER SIMPAN DATA
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!formData.nama_varietas || !formData.umur_bulan || !formData.jumlah_stok) {
+      setNotifikasi({
+        muncul: true,
+        pesan: 'Mohon lengkapi seluruh kolom wajib (*), bos!',
+        tipe: 'gagal'
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch('http://127.0.0.1:8000/api/bibit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          nama_varietas: formData.nama_varietas,
+          umur_bulan: parseInt(formData.umur_bulan),
+          deskripsi: formData.deskripsi,
+          jumlah_stok: parseInt(formData.jumlah_stok),
+        }),
+      });
+
+      const hasil = await response.json();
+
+      if (response.ok && hasil.success) {
+        
+        // 🟢 TRIGGER NOTIFIKASI ESTETIK (PENGGANTI ALERT)
+        setNotifikasi({
+          muncul: true,
+          pesan: 'Mantap bos! Varietas baru dan stok awal pembibitan berhasil masuk database.',
+          tipe: 'sukses'
+        });
+
+        // Kosongkan form input
+        setFormData({ nama_varietas: '', umur_bulan: '', deskripsi: '', jumlah_stok: '' });
+
+        // Beri jeda 2.5 detik agar user bisa melihat pesannya, lalu redirect otomatis
+        setTimeout(() => {
+          navigate('/admin/bibit');
+        }, 2500);
+
+      } else {
+        setNotifikasi({
+          muncul: true,
+          pesan: hasil.message || 'Gagal menyimpan data ke database.',
+          tipe: 'gagal'
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      setNotifikasi({
+        muncul: true,
+        pesan: 'Koneksi gagal! Pastikan server backend Laravel Anda menyala.',
+        tipe: 'gagal'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div 
       className="min-h-screen pb-12 font-sans selection:bg-[#2DAB80] selection:text-white relative bg-fixed bg-cover bg-center"
       style={{ backgroundImage: `url(${Bg})` }}
     >
-      {/* Latar belakang transparan tipis agar background luar tetep estetik */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/70 to-white/90 pointer-events-none z-0" />
 
+      {/* 🟢 TAMPILAN ELEMEN NOTIFIKASI FLOATING (TOAST ALERT) */}
+      {notifikasi.muncul && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md animate-bounce">
+          <div className={`shadow-xl rounded-2xl p-4 flex gap-3 items-center border ${
+            notifikasi.tipe === 'sukses' 
+              ? 'bg-[#E6F4EA] border-green-200 text-[#137333]' 
+              : 'bg-red-50 border-red-200 text-red-700'
+          }`}>
+            {notifikasi.tipe === 'sukses' ? (
+              <FiCheckCircle className="text-xl shrink-0" />
+            ) : (
+              <FiInfo className="text-xl shrink-0" />
+            )}
+            <p className="text-xs font-bold tracking-wide leading-tight">
+              {notifikasi.pesan}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="relative z-10 flex flex-col min-h-screen">
-        
-        {/* 🟩 HEADER HIJAU ASIMETRIS (Sisi kiri bawah melengkung oval besar) */}
+        {/* HEADER HIJAU ASIMETRIS */}
         <div className="bg-[#294D29] text-white px-6 pt-8 pb-20 rounded-bl-[60px] rounded-br-[60px] shadow-md relative z-10">
           <div className="flex items-center gap-3">
-            <button className="text-2xl focus:outline-none" aria-label="Kembali">
+            <button onClick={() => navigate('/admin/bibit')} className="text-2xl focus:outline-none" aria-label="Kembali">
               <HiChevronLeft />
             </button>
             <div className="space-y-0.5">
@@ -28,13 +139,12 @@ export default function InputBibit() {
         </div>
 
         <div className="px-8 -mt-10 relative z-20 flex-1 w-full">
-          
-          <div className="bg-white rounded-[32px] shadow-[0_8px_30px_rgba(0,0,0,0.08)] px-5 py-6 space-y-6">
+          <form onSubmit={handleSubmit} className="bg-white rounded-[32px] shadow-[0_8px_30px_rgba(0,0,0,0.08)] px-5 py-6 space-y-6">
             
-            {/* ℹ️ BOX INFO / ALERT (Warna Hijau Keabuan Halus) */}
+            {/* BOX INFO */}
             <div className="bg-[#EAEFEA]/80 border-2 border-[#315631a0] rounded-2xl p-4 flex gap-3 items-start">
-                <FiInfo className="text-[#294D29] text-lg mt-0.5 shrink-0" />
-                <p className="text-[#435343] text-xs font-semibold leading-relaxed">
+              <FiInfo className="text-[#294D29] text-lg mt-0.5 shrink-0" />
+              <p className="text-[#435343] text-xs font-semibold leading-relaxed">
                 Form ini digunakan untuk mendaftarkan jenis varietas baru. Untuk penambahan stok bibit, gunakan menu <span className="font-bold text-[#294D29]">Manajemen Stok</span>.
               </p>
             </div>
@@ -46,8 +156,12 @@ export default function InputBibit() {
               </label>
               <input 
                 type="text" 
+                name="nama_varietas"
+                value={formData.nama_varietas}
+                onChange={handleChange}
                 placeholder="Contoh: PPKS Simalungun" 
                 className="w-full bg-[#F9FBF9] border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-[#020202] placeholder:text-gray-300 focus:outline-none focus:border-[#294D29] focus:bg-white transition-all"
+                required
               />
             </div>
 
@@ -59,17 +173,43 @@ export default function InputBibit() {
               <div className="relative flex items-center">
                 <input 
                   type="number" 
+                  name="umur_bulan"
+                  value={formData.umur_bulan}
+                  onChange={handleChange}
                   placeholder="0" 
+                  min="0"
                   className="w-full bg-[#F9FBF9] border border-gray-200 rounded-xl pl-4 pr-20 py-3.5 text-sm text-[#020202] placeholder:text-gray-300 focus:outline-none focus:border-[#294D29] focus:bg-white transition-all"
+                  required
                 />
-                {/* Badge BULAN di ujung kanan dalam input */}
                 <span className="absolute right-3 bg-gray-100 text-gray-400 text-[10px] font-extrabold tracking-wider uppercase px-3 py-1.5 rounded-lg border border-gray-200/50 pointer-events-none">
                   BULAN
                 </span>
               </div>
             </div>
 
-            {/* INPUT 3: Deskripsi Tambahan */}
+            {/* INPUT 3: Stok Fisik Awal */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-[#020202] tracking-wide block">
+                Kuantitas / Stok Fisik Awal <span className="text-[#F9303B]">*</span>
+              </label>
+              <div className="relative flex items-center">
+                <input 
+                  type="number" 
+                  name="jumlah_stok"
+                  value={formData.jumlah_stok}
+                  onChange={handleChange}
+                  placeholder="0" 
+                  min="0"
+                  className="w-full bg-[#F9FBF9] border border-gray-200 rounded-xl pl-4 pr-20 py-3.5 text-sm text-[#020202] placeholder:text-gray-300 focus:outline-none focus:border-[#294D29] focus:bg-white transition-all"
+                  required
+                />
+                <span className="absolute right-3 bg-gray-100 text-gray-400 text-[10px] font-extrabold tracking-wider uppercase px-3 py-1.5 rounded-lg border border-gray-200/50 pointer-events-none">
+                  BATANG
+                </span>
+              </div>
+            </div>
+
+            {/* INPUT 4: Deskripsi Tambahan */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
                 <label className="text-xs font-black text-[#020202] tracking-wide block">
@@ -80,24 +220,27 @@ export default function InputBibit() {
                 </span>
               </div>
               <textarea 
-                rows="5"
+                rows="4"
+                name="deskripsi"
+                value={formData.deskripsi}
+                onChange={handleChange}
                 placeholder="Tuliskan keunggulan atau karakteristik varietas di sini..." 
                 className="w-full bg-[#F9FBF9] border border-gray-200 rounded-xl px-4 py-3.5 text-sm text-[#020202] placeholder:text-gray-300 focus:outline-none focus:border-[#294D29] focus:bg-white transition-all resize-none"
               />
             </div>
 
-            {/* 🎯 BUTTON AKSI UTAMA */}
+            {/* BUTTON SUBMIT */}
             <div className="pt-4">
               <button 
                 type="submit" 
-                className="w-full bg-[#435343] hover:bg-[#294D29] text-white text-sm font-bold py-4 rounded-xl shadow-md transition-all focus:outline-none tracking-wide"
+                disabled={loading}
+                className={`w-full ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#435343] hover:bg-[#294D29]'} text-white text-sm font-bold py-4 rounded-xl shadow-md transition-all focus:outline-none tracking-wide cursor-pointer`}
               >
-                Simpan Varietas
+                {loading ? 'Sedang Menyimpan Data...' : 'Simpan Varietas'}
               </button>
             </div>
 
-          </div>
-
+          </form>
         </div>
       </div>
     </div>

@@ -1,10 +1,21 @@
 <?php
 
 namespace App\Models;
-use Illuminate\Foundation\Auth\User as Authenticatable;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Staf extends Authenticatable
+class Staf extends Model
 {
-    protected $table = 'tb_staf';
+    use HasFactory;
+
+    // Menentukan kolom mana saja yang boleh diisi massal
+    protected $fillable = [
+        'name',
+        'username',
+        'initials',
+        'color',
+        'role',
+        'status'
+    ];
 }
