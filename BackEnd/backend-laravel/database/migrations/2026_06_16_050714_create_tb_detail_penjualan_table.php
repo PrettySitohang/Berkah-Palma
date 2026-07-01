@@ -15,8 +15,13 @@ return new class extends Migration
             $table->id('id_detail'); // Primary Key (Auto Increment) dari relasi memuat
             $table->integer('jumlah');
 
+            $table->string('id_penjualan', 20);
+
             // Menghubungkan ke Penjualan dan Varietas
-            $table->foreignId('id_penjualan')->constrained('tb_penjualan', 'id_penjualan')->onDelete('cascade');
+           $table->foreign('id_penjualan')
+              ->references('id_penjualan')
+              ->on('tb_penjualan')
+              ->onDelete('cascade');
             $table->foreignId('id_varietas')->constrained('tb_varietas_bibit', 'id_varietas')->onDelete('cascade');
 
             $table->timestamps();

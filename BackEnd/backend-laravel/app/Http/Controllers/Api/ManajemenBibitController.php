@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 class ManajemenBibitController extends Controller
 {
     /**
-     * Display a listing of the resource (V10 Halaman Manajemen Bibit)
+     * Menampilkan daftar varietas beserta stoknya (Untuk Dropdown di React)
      */
     public function index()
     {
@@ -26,30 +26,71 @@ class ManajemenBibitController extends Controller
     }
 
     /**
-     * Store a newly created varietas and synchronize initial stock quantity
+     * Menambahkan jumlah stok fisik untuk varietas yang sudah terdaftar (Fungsi Baru)
+     */
+    public function tambahStokFisik(Request $request)
+    {
+        // 1. Validasi input: pastikan id_varietas terdaftar dan jumlah_stok minimal 1
+        $request->validate([
+            'id_varietas' => 'required|exists:tb_varietas_bibit,id_varietas',
+            'jumlah_stok' => 'required|integer|min:1',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            // 2. Cari data stok berdasarkan id_varietas di tabel tb_stok_bibit
+            $stokBibit = StokBibit::where('id_varietas', $request->id_varietas)->first();
+
+            if ($stokBibit) {
+                // Jika data stok sudah ada, tambahkan jumlahnya dengan increment
+                $stokBibit->increment('jumlah_stok', $request->jumlah_stok);
+            } else {
+                // Antisipasi jika varietas ada tetapi baris stok belum dibuat
+                StokBibit::create([
+                    'id_varietas' => $request->id_varietas,
+                    'jumlah_stok' => $request->jumlah_stok,
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stok fisik bibit berhasil ditambahkan ke dalam sistem!',
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memperbarui stok di database.',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Membuat jenis varietas baru dari nol (Fungsi Bawaan Sebelumnya)
      */
     public function storeNewVarietas(Request $request)
     {
-        // 1. Validasi Input sesuai kriteria database
         $request->validate([
             'nama_varietas' => 'required|string|max:255',
             'umur_bulan'    => 'required|integer|min:0',
             'deskripsi'     => 'nullable|string',
-            'jumlah_stok'   => 'required|integer|min:0', // Input stok awal wajib diisi
+            'jumlah_stok'   => 'required|integer|min:0',
         ]);
 
-        // 2. Gunakan Database Transaction agar jika salah satu gagal, semua dibatalkan (Aman)
         DB::beginTransaction();
 
         try {
-            // Simpan karakteristik botani ke tb_varietas_bibit
             $varietas = VarietasBibit::create([
                 'nama_varietas' => $request->nama_varietas,
                 'umur_bulan'    => $request->umur_bulan,
                 'deskripsi'     => $request->deskripsi,
             ]);
 
-            // Sinkronisasi awal kuantitas barang saat jenis varietas baru dirilis ke tb_stok_bibit
             StokBibit::create([
                 'id_varietas' => $varietas->id_varietas,
                 'jumlah_stok' => $request->jumlah_stok,
@@ -74,7 +115,7 @@ class ManajemenBibitController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Memperbarui karakteristik data varietas
      */
     public function update(Request $request, $id)
     {
@@ -100,7 +141,7 @@ class ManajemenBibitController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Menghapus varietas bibit beserta relasi stoknya
      */
     public function destroy($id)
     {
@@ -110,7 +151,6 @@ class ManajemenBibitController extends Controller
             return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
         }
 
-        // tb_stok_bibit akan otomatis terhapus karena 'onDelete_cascade' di migration
         $varietas->delete();
 
         return response()->json([

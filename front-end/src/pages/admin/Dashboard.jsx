@@ -3,6 +3,7 @@ import { CgDanger } from "react-icons/cg";
 import React from 'react';
 import Header from '../../components/Header'
 import Bg from '../../../public/img/foto_bibit_sawit_1.png';
+import SidebarAdmin from "../../components/SidebarAdmin";
 
 export default function Dashboard() {
   return (
@@ -11,6 +12,7 @@ export default function Dashboard() {
       className="min-h-screen pb-10 font-sans selection:bg-[#2DAB80] selection:text-white relative bg-fixed bg-cover bg-center"
       style={{ backgroundImage: `url(${Bg})` }}
     >
+      <SidebarAdmin/>
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/70 to-white/95 pointer-events-none z-0" />
 
       <div className="relative z-10">

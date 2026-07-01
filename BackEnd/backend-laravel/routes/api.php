@@ -3,10 +3,14 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\StafController;
 
 use App\Http\Controllers\API\VarietasBibitController;
 use App\Http\Controllers\API\ManajemenBibitController;
+use App\Http\Controllers\API\DashboardController;
+
+Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/varietas-bibit', [VarietasBibitController::class, 'index']);
 
@@ -19,3 +23,5 @@ Route::get('/staf', [StafController::class, 'index']);
 Route::post('/staf', [StafController::class, 'store']);
 Route::patch('/staf/toggle/{id}', [StafController::class, 'toggleStatus']);
 Route::delete('/staf/{id}', [StafController::class, 'destroy']);
+
+Route::get('/dashboard', [DashboardController::class, 'index']);

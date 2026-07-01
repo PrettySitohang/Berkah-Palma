@@ -9,22 +9,28 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::create('tb_penjualan', function (Blueprint $table) {
-            $table->id('id_penjualan'); // Primary Key (Auto Increment)
-            $table->date('tanggal_transaksi'); // Di ERD: tsnggslz-transaksi (typo diganti tanggal)
-            $table->string('nama_pelangan');   // Sesuai ERD (nama_pelangan)
-            $table->string('no_p');            // Nomor telepon/HP pelanggan
-            $table->string('jenis_pembelian');
-            $table->string('status');
-            $table->text('alamat');
+   public function up(): void
+{
+    Schema::create('tb_penjualan', function (Blueprint $table) {
+        // Primary Key berupa kode nota VARCHAR(20)
+        $table->string('id_penjualan', 20)->primary(); 
+        
+        $table->date('tanggal_transaksi'); 
+        $table->string('nama_pelanggan'); // Disinkronkan agar tidak typo
+        $table->string('no_hp');          // Disinkronkan dengan UI React
+        
+        // Menggunakan tipe data ENUM sesuai dokumen rancangan
+        $table->enum('jenis_pembelian', ['Online', 'Offline']);
+        $table->enum('status', ['Pending', 'Diproses', 'Selesai', 'Batal']);
+        
+        $table->text('alamat');
 
-            // Foreign Key staf yang memproses penjualan ini
-            $table->foreignId('id_staf')->constrained('tb_staf', 'id_staf')->onDelete('cascade');
+        // Foreign Key ke staf pemroses
+        $table->foreignId('id_staf')->constrained('tb_staf', 'id_staf')->onDelete('cascade');
 
-            $table->timestamps();
-        });
+        $table->timestamps();
+    });
+
     }
 
     /**

@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",
     "axios": "^1.18.0",
+    "daisyui": "^5.5.23",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-icon": "^1.0.0",

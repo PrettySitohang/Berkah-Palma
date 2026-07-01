@@ -9,15 +9,16 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
+public function up(): void
     {
         Schema::create('tb_staf', function (Blueprint $table) {
             $table->id('id_staf'); // Primary Key (Auto Increment)
             $table->string('nama_staf');
             $table->string('username')->unique();
+            $table->string('email')->unique();
             $table->string('password');
             $table->string('role');
-            $table->timestamps();
+            $table->timestamps(); 
         });
     }
 

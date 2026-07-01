@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Staf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class StafController extends Controller
 {
@@ -23,16 +24,18 @@ class StafController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'username' => 'required|string|unique:stafs,username',
+            'username' => 'required|string|unique:tb_staf,username',
+            'password' => 'required|string|min:6',
             'initials' => 'required|string|max:3',
             'color' => 'required|string',
             'role' => 'required|string',
         ]);
 
         try {
-            // Default status otomatis true (Aktif) saat dibuat
-            $validated['status'] = true; 
-            
+            // Hash password sebelum disimpan ke database
+            $validated['password'] = Hash::make($validated['password']);
+            $validated['status'] = true;
+
             $staf = Staf::create($validated);
             return response()->json(['message' => 'Staf baru berhasil ditambahkan!', 'data' => $staf], 201);
         } catch (\Exception $e) {

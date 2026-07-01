@@ -8,7 +8,6 @@ const MainLayout = lazy(() => import('./layouts/MainLayout'));
 const AuthLayout = lazy(() => import('./layouts/AuthLayout'));
 
 // --- ADMIN PAGES ---
-const LoginAdmin = lazy(() => import('./pages/admin/LoginAdmin'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const KelolaPesanan = lazy(() => import('./pages/admin/KelolaPesanan'));
 const DetailPenjualan = lazy(() => import('./pages/admin/DetailPenjualan'));
@@ -17,20 +16,30 @@ const InputBibit = lazy(() => import('./pages/admin/InputBibit'));
 const ManajemenAkun = lazy(() => import('./pages/admin/ManajemenAkun'));
 const InputAkun = lazy(() => import('./pages/admin/InputAkun'));
 
+// --- AUTH PAGES ---
+const Login = lazy(() => import('./pages/auth/Login'));
+
+// --- KARYAWAN PAGES ---
+const DashboardKaryawan = lazy(() => import('./pages/karyawan/Dashboard'));
+const KelolaPesananKaryawan = lazy(() => import('./pages/karyawan/KelolaPesanan'));
+const DetailPenjualanKaryawan = lazy(() => import('./pages/karyawan/DetailPenjualan'));
+const ManajemenBibitKaryawan = lazy(() => import('./pages/karyawan/ManajemenBibit'));
+const InputBibitKaryawan = lazy(() => import('./pages/karyawan/InputBibit'));
+
 // --- CUSTOMER & OTHERS (Disamakan dengan struktur folder di image_4b08bd.png) ---
-const Customer = lazy(() => import('./pages/Customer'));
+const Customer = lazy(() => import('./pages/guest/katalog'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function App() {
   return (
     <Suspense fallback={<Loading />}>
       <Routes>
-        {/* Redirect dari root (/) ke halaman login admin sementara */}
-        <Route path="/" element={<Navigate to="/admin/login" replace />} />
+        {/* Redirect dari root (/) ke halaman login umum */}
+        <Route path="/" element={<Navigate to="/auth/login" replace />} />
 
         {/* --- ROUTING AUTHENTICATION --- */}
         <Route element={<AuthLayout />}>
-          <Route path="/admin/login" element={<LoginAdmin />} />
+          <Route path="/auth/login" element={<Login />} />
         </Route>
 
         {/* --- ROUTING ADMIN PANEL --- */}
@@ -47,6 +56,17 @@ function App() {
           
           <Route path="akun" element={<ManajemenAkun />} />
           <Route path="akun/form" element={<InputAkun />} />
+        </Route>
+
+        {/* --- ROUTING KARYAWAN PANEL --- */}
+        <Route path="/karyawan" element={<MainLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<DashboardKaryawan />} />
+          <Route path="pesanan" element={<KelolaPesananKaryawan />} />
+          <Route path="pesanan/detail" element={<DetailPenjualanKaryawan />} />
+          <Route path="bibit" element={<ManajemenBibitKaryawan />} />
+          <Route path="bibit/form" element={<InputBibitKaryawan />} />
+
         </Route>
 
         {/* --- ROUTING CUSTOMER (Publik) --- */}
