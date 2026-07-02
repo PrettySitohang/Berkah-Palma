@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Hash;
 
 class StafController extends Controller
 {
-    // 1. GET ALL DATA (Mengambil semua akun staf)
     public function index()
     {
         try {
@@ -23,11 +22,9 @@ class StafController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
+            'nama_staff' => 'required|string|max:255',
             'username' => 'required|string|unique:tb_staf,username',
             'password' => 'required|string|min:6',
-            'initials' => 'required|string|max:3',
-            'color' => 'required|string',
             'role' => 'required|string',
         ]);
 
@@ -74,9 +71,35 @@ class StafController extends Controller
             }
 
             $staf->delete();
-            return response()->json(['message' => 'Akun staf berhasil dihapus permanen!'], 200);
+
+            return response()->json([
+                'message' => 'Akun staf berhasil dihapus permanen!'
+            ], 200);
+
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Gagal menghapus data', 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'message' => 'Gagal menghapus data',
+                'error' => $e->getMessage()
+            ], 500);
         }
+    }
+
+    public function getProfile(Request $request)
+    {
+        $staf = $request->user();
+
+        if (!$staf) {
+            return response()->json([
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        return response()->json([
+            'id_staff'   => $staf->id_staff,
+            'nama_staff' => $staf->nama_staff,
+            'username'   => $staf->username,
+            'email'      => $staf->email,
+            'role'       => $staf->role,
+        ]);
     }
 }

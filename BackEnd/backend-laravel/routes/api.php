@@ -25,3 +25,11 @@ Route::patch('/staf/toggle/{id}', [StafController::class, 'toggleStatus']);
 Route::delete('/staf/{id}', [StafController::class, 'destroy']);
 
 Route::get('/dashboard', [DashboardController::class, 'index']);
+
+Route::middleware('auth:web')->group(function () {
+
+    Route::get('/profile', [StafController::class, 'getProfile']);
+
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+});

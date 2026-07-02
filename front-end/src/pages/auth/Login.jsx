@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../api/axios';
 import { BsFillExclamationDiamondFill } from "react-icons/bs";
 import { ImSpinner2 } from "react-icons/im";
 
@@ -33,22 +33,32 @@ export default function Login() {
 
     const handleSubmit = async (evt) => {
         evt.preventDefault();
+
         setLoading(true);
         setError("");
 
         try {
-            const response = await axios.post('http://127.0.0.1:8000/api/login', dataForm);
-            const { role } = response.data;
-            localStorage.setItem('token', response.data.token || '');
-            localStorage.setItem('role', role);
 
-            if (role.toLowerCase() === 'admin') {
-                navigate('/admin/dashboard');
+            const response = await api.post("/login", dataForm);
+
+            const { role } = response.data.data;
+
+            // Jika suatu saat butuh untuk tampilan UI
+            localStorage.setItem("role", role);
+
+            if (role && role.toLowerCase() === "admin") {
+                navigate("/admin/dashboard");
             } else {
-                navigate('/karyawan/dashboard');
+                navigate("/karyawan/dashboard");
             }
+
         } catch (err) {
-            setError(err.response?.data?.message || "Login gagal, cek kembali email/password.");
+
+            setError(
+                err.response?.data?.message ||
+                "Login gagal, silakan cek kembali email/username dan password."
+            );
+
         } finally {
             setLoading(false);
         }
