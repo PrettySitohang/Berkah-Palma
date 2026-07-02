@@ -26,7 +26,7 @@ class ManajemenBibitController extends Controller
     }
 
     /**
-     * Menambahkan jumlah stok fisik untuk varietas yang sudah terdaftar (Fungsi Baru)
+     * Menambahkan jumlah stok fisik untuk varietas yang sudah terdaftar
      */
     public function tambahStokFisik(Request $request)
     {
@@ -71,7 +71,7 @@ class ManajemenBibitController extends Controller
     }
 
     /**
-     * Membuat jenis varietas baru dari nol (Fungsi Bawaan Sebelumnya)
+     * Membuat jenis varietas baru dari nol
      */
     public function storeNewVarietas(Request $request)
     {
