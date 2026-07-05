@@ -13,7 +13,6 @@ export default function InputBibit() {
     jumlah_stok: "",
   });
 
-  // State data master dropdown & loading
   const [daftarVarietas, setDaftarVarietas] = useState([]);
   const [loadingVarietas, setLoadingVarietas] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -80,7 +79,8 @@ export default function InputBibit() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/bibit", {
+      // PERBAIKAN: Mengubah endpoint target ke rute /api/bibit/tambah-stok
+      const response = await fetch("http://127.0.0.1:8000/api/bibit/tambah-stok", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -97,7 +97,7 @@ export default function InputBibit() {
       if (response.ok && hasil.success) {
         setNotifikasi({
           muncul: true,
-          pesan: "Stok fisik berhasil ditambahkan ke database sistem!",
+          pesan: hasil.message || "Stok fisik berhasil ditambahkan ke database sistem!",
           tipe: "sukses",
         });
 

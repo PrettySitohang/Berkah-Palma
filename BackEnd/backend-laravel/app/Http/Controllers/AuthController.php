@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Staf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 
 class AuthController extends Controller
 {
@@ -18,31 +18,55 @@ class AuthController extends Controller
 
         $loginValue = $validated['email'];
 
-        $query = Staf::query();
-
         if (filter_var($loginValue, FILTER_VALIDATE_EMAIL)) {
-            $staf = $query->where('email', $loginValue)->first();
+            $staf = Staf::where('email', $loginValue)->first();
         } else {
-            $staf = $query->where('username', $loginValue)->first();
+            $staf = Staf::where('username', $loginValue)->first();
         }
 
         if (!$staf) {
-            return response()->json(['message' => 'Email atau password tidak valid.'], 401);
+            return response()->json([
+                'success' => false,
+                'message' => 'Email/Username atau Password tidak valid.'
+            ], 401);
         }
 
         if (!Hash::check($validated['password'], $staf->password)) {
-            return response()->json(['message' => 'Email atau password tidak valid.'], 401);
+            return response()->json([
+                'success' => false,
+                'message' => 'Email/Username atau Password tidak valid.'
+            ], 401);
         }
 
-        if (property_exists($staf, 'status') && $staf->status === false) {
-            return response()->json(['message' => 'Akun Anda tidak aktif.'], 403);
-        }
+        Auth::login($staf);
+
+        $request->session()->regenerate();
 
         return response()->json([
+            'success' => true,
             'message' => 'Login berhasil.',
-            'role' => $staf->role,
-            'name' => $staf->name,
-            'token' => bin2hex(random_bytes(16)),
-        ], 200);
+
+            'data' => [
+                'id_staf'    => $staf->id_staf,
+                'nama_staf'  => $staf->nama_staf,
+                'username'   => $staf->username,
+                'email'      => $staf->email,
+                'role'       => $staf->role,
+            ]
+        ]);
+    }
+
+    public function logout(Request $request)
+    {
+        Auth::logout();
+
+        $request->session()->invalidate();
+
+        $request->session()->regenerateToken();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logout berhasil.'
+        ]);
     }
 }

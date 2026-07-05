@@ -7,7 +7,6 @@ import Logo from "../../../public/img/Logo.png";
 import Sidebar from "../../components/Sidebar";
 
 export default function Dashboard() {
-  // State untuk menyimpan data dinamis dari database
   const [data, setData] = useState({
     total_stok_keseluruhan: 0,
     total_masuk: 0,

@@ -1,7 +1,7 @@
+import { CgProfile } from "react-icons/cg"; 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiOutlineBars3 } from "react-icons/hi2"; 
-import { BsPersonCircle } from "react-icons/bs"; 
 import Logo from '../../public/img/Logo.png'; 
 
 export default function Header() {
@@ -18,8 +18,7 @@ export default function Header() {
     <header className="bg-[#294D29]/90 md:bg-[#294D29]/80 text-white px-6 md:px-12 py-4 shadow-lg backdrop-blur-md sticky top-0 z-50 transition-all border-b border-white/5">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         
-        {/* ================= SISI KIRI: HAMBURGER (MOBILE ONLY) ================= */}
-        {/* Menggunakan label untuk pure CSS sidebar toggle yang dipertahankan */}
+       
         <label 
           htmlFor="sidebar-toggle" 
           className="text-white text-2xl focus:outline-none hover:text-[#C5A830] transition-colors cursor-pointer block md:hidden p-1 active:scale-90" 
@@ -59,11 +58,8 @@ export default function Header() {
           className="flex items-center gap-2 group focus:outline-none text-white text-2xl md:text-3xl hover:text-[#C5A830] transition-all relative p-1 active:scale-95" 
           aria-label="Profile"
         >
-          <BsPersonCircle className="drop-shadow-md group-hover:rotate-12 transition-transform" />
-          {/* Label nama mini tersembunyi yang muncul di layar desktop */}
-          <span className="hidden md:inline-block text-xs font-bold uppercase tracking-wider text-gray-200 group-hover:text-[#C5A830] transition-colors">
-            Admin
-          </span>
+          <CgProfile className="drop-shadow-md  transition-transform" />
+   
         </button>
 
       </div>

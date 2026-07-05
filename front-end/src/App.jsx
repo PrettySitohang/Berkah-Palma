@@ -29,6 +29,7 @@ const InputBibitKaryawan = lazy(() => import('./pages/karyawan/InputBibit'));
 // --- CUSTOMER & OTHERS (Disamakan dengan struktur folder di image_4b08bd.png) ---
 const Customer = lazy(() => import('./pages/guest/katalog'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 function App() {
   return (
@@ -68,6 +69,9 @@ function App() {
           <Route path="bibit/form" element={<InputBibitKaryawan />} />
 
         </Route>
+
+        {/* --- ROUTING PROFILE --- */}
+        <Route path="/profile" element={<Profile />} />
 
         {/* --- ROUTING CUSTOMER (Publik) --- */}
         <Route path="/customer" element={<Customer />} />

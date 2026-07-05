@@ -1,39 +1,82 @@
-import React from 'react';
+import api from "../api/axios";
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BiArrowBack } from 'react-icons/bi';
 import { FiMail, FiUser, FiBriefcase, FiLogOut } from 'react-icons/fi';
 import logoBerkah from '../assets/logo_berkah.png'; 
-import Bg from '../../../public/img/foto_bibit_sawit_1.png'; // Menggunakan asset gambar sawit yang sama agar konsisten
+import Bg from '../assets/foto_bibit_sawit.png'; 
 
 export default function Profile() {
   const navigate = useNavigate();
 
-  // Murni Tanpa Context: Mengambil data user langsung dari localStorage
-  const storedUser = localStorage.getItem('user');
-  const user = storedUser ? JSON.parse(storedUser) : null;
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handleLogout = () => {
-    // Bersihkan semua session login dari localStorage
-    localStorage.removeItem('user');
-    localStorage.removeItem('role');
-    localStorage.removeItem('token');
-    
-    // Redirect balik ke halaman login
-    navigate('/login');
+  // 2. EFFECT UNTUK FETCH DATA DARI LARAVEL BACKEND
+  useEffect(() => {
+
+    const fetchProfile = async () => {
+
+        try {
+
+            const response = await api.get("/profile");
+
+            setUser(response.data);
+
+        } catch (err) {
+
+            setError(
+                err.response?.data?.message ||
+                "Gagal mengambil data profil."
+            );
+
+        } finally {
+
+            setLoading(false);
+
+        }
+
+    };
+
+    fetchProfile();
+
+  }, []);
+
+  const handleLogout = async () => {
+      try {
+          await api.post("/logout");
+          localStorage.removeItem("role");
+          navigate("/auth/login");
+      } catch (err) {
+          console.error(err);
+      }
   };
 
   const handleBack = () => {
     navigate(-1);
   };
 
-  // Jika data user tidak sengaja hilang/kosong di localStorage
-  if (!user) {
+  // 3. TAMPILAN LOADING STATE (Sambil menunggu respon database Laravel)
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[#294D29]/5">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#2DAB80] mx-auto mb-4"></div>
+          <p className="text-gray-500 font-medium">Sinkronisasi data akun internal...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 4. TAMPILAN ERROR STATE (Jika token salah / kedaluwarsa / server mati)
+  if (error || !user) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#294D29]/5">
         <div className="text-center p-8 bg-white rounded-3xl shadow-xl max-w-sm border border-gray-100">
-          <p className="text-gray-500 font-medium mb-5">Pengguna tidak ditemukan. Silakan login kembali.</p>
+          <p className="text-red-500 font-medium mb-5">{error || 'Pengguna tidak ditemukan.'}</p>
           <button 
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/auth/login')}
             className="w-full bg-[#2DAB80] hover:bg-[#238c68] text-white font-bold py-3 rounded-xl transition-all shadow-md active:scale-95"
           >
             Ke Halaman Login
@@ -50,7 +93,7 @@ export default function Profile() {
       className="min-h-screen pb-12 font-sans selection:bg-[#2DAB80] selection:text-white relative bg-fixed bg-cover bg-center"
       style={{ backgroundImage: `url(${Bg})` }}
     >
-      {/* 🎯 OVERLAY UTAMA: Menggunakan warna hijau #294D29 transparan di seluruh latar belakang */}
+      {/* 🎯 OVERLAY UTAMA */}
       <div className="absolute inset-0 bg-[#294D29]/80 md:bg-[#294D29]/75 pointer-events-none z-0 backdrop-blur-sm" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 pt-6">
@@ -75,7 +118,6 @@ export default function Profile() {
           
           {/* Header Internal Card Background */}
           <div className="bg-gradient-to-br from-[#294D29] to-[#1e381e] h-28 relative">
-            {/* Pola dekoratif lingkaran abstrak mini */}
             <div className="absolute -top-6 -right-6 w-24 h-24 bg-white/5 rounded-full" />
           </div>
 
@@ -95,9 +137,8 @@ export default function Profile() {
 
             {/* Nama & Role */}
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-black text-[#020202] tracking-tight">{user.nama}</h2>
+              <h2 className="text-2xl font-black text-[#020202] tracking-tight">{user.nama_staff}</h2>
               <div className="flex items-center justify-center gap-2 mt-2">
-                {/* Badge Emas jika Admin, Hijau jika Karyawan */}
                 <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-sm ${
                   user.role === 'admin' 
                     ? 'bg-[#C5A830]/10 text-[#C5A830] border border-[#C5A830]/20' 
@@ -109,7 +150,7 @@ export default function Profile() {
               <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest mt-2">Berkah Palma Nursery</p>
             </div>
 
-            {/* Info Section (Menggunakan Ikon & Struktur Bersih) */}
+            {/* Info Section */}
             <div className="space-y-3 mb-6">
               
               {/* Username */}
@@ -147,7 +188,7 @@ export default function Profile() {
 
             </div>
 
-            {/* Logout Button (Gaya Tombol Merah Kritis Modern) */}
+            {/* Logout Button */}
             <button
               onClick={handleLogout}
               className="w-full bg-red-50 hover:bg-red-500 text-red-500 hover:text-white font-black text-xs uppercase tracking-wider py-4 px-4 rounded-xl flex items-center justify-center gap-2 border border-red-100 shadow-sm transition-all active:scale-[0.98]"
