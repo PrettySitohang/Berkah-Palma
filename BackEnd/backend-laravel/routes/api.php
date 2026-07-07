@@ -3,8 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\StafController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\StafController;
 
 use App\Http\Controllers\API\VarietasBibitController;
 use App\Http\Controllers\API\ManajemenBibitController;

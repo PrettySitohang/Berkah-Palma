@@ -158,8 +158,8 @@ export default function KelolaPesanan() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {dataPesanan.map((item) => (
-                        <tr key={item.id_penjualan} className="align-middle group hover:bg-gray-50/50 transition-colors">
+                      {dataPesanan.map((item, index) => (
+                        <tr key={`${item.id_penjualan}-${index}`} className="align-middle group hover:bg-gray-50/50 transition-colors">
                           <td className="py-4">
                             <span className="text-sm font-black text-[#020202] block group-hover:text-[#294D29] transition-colors">{item.id_penjualan}</span>
                             <span className="text-[10px] font-bold text-[#A8AFBB] block mt-0.5">{item.tanggal_transaksi}</span>
@@ -178,22 +178,23 @@ export default function KelolaPesanan() {
                           </td>
                           <td className="py-4 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              {item.status === 'Pending' && (
+                              {/* Pencocokan menggunakan string asli dari state tab/data */}
+                              {(item.status === 'Pending' || item.status === 'PENDING') && (
                                 <>
-                                  <button onClick={() => ubahStatusPesanan(item.id_penjualan, 'Diproses')} className="bg-[#2DAB80] hover:bg-[#238A66] text-white text-[9px] font-black tracking-wider px-3 py-1.5 rounded-xl transition-all uppercase flex items-center gap-1 shadow-sm">
+                                  <button onClick={() => ubahStatusPesanan(item.id_penjualan, 'DIPROSES')} className="bg-[#2DAB80] hover:bg-[#238A66] text-white text-[9px] font-black tracking-wider px-3 py-1.5 rounded-xl transition-all uppercase flex items-center gap-1 shadow-sm">
                                     <FiCheckCircle /> Terima
                                   </button>
-                                  <button onClick={() => ubahStatusPesanan(item.id_penjualan, 'Batal')} className="bg-rose-500 hover:bg-rose-600 text-white text-[9px] font-black tracking-wider px-3 py-1.5 rounded-xl transition-all uppercase flex items-center gap-1 shadow-sm">
+                                  <button onClick={() => ubahStatusPesanan(item.id_penjualan, 'BATAL')} className="bg-rose-500 hover:bg-rose-600 text-white text-[9px] font-black tracking-wider px-3 py-1.5 rounded-xl transition-all uppercase flex items-center gap-1 shadow-sm">
                                     <FiXCircle /> Tolak
                                   </button>
                                 </>
                               )}
-                              {item.status === 'Diproses' && (
-                                <button onClick={() => ubahStatusPesanan(item.id_penjualan, 'Selesai')} className="bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-black tracking-wider px-4 py-1.5 rounded-xl transition-all uppercase flex items-center gap-1 shadow-sm">
+                              {(item.status === 'Diproses' || item.status === 'DIPROSES') && (
+                                <button onClick={() => ubahStatusPesanan(item.id_penjualan, 'SELESAI')} className="bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-black tracking-wider px-4 py-1.5 rounded-xl transition-all uppercase flex items-center gap-1 shadow-sm">
                                   <FiCheckCircle /> Selesai
                                 </button>
                               )}
-                              {['Selesai', 'Batal'].includes(item.status) && (
+                              {['Selesai', 'SELESAI', 'Batal', 'BATAL'].includes(item.status) && (
                                 <span className="text-[10px] font-bold text-gray-400">Tinjauan Selesai</span>
                               )}
                             </div>
@@ -206,8 +207,8 @@ export default function KelolaPesanan() {
 
                 {/* 📱 MOBILE CARD VIEW */}
                 <div className="md:hidden px-4 space-y-4 overflow-y-auto max-h-[460px] flex-1">
-                  {dataPesanan.map((item) => (
-                    <div key={item.id_penjualan} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-3 shadow-inner relative overflow-hidden">
+                  {dataPesanan.map((item, index) => (
+                    <div key={`${item.id_penjualan}-mobile-${index}`} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-3 shadow-inner relative overflow-hidden">
                       <div className="flex justify-between items-start">
                         <div>
                           <span className="text-xs font-black text-gray-900 block">{item.id_penjualan}</span>
@@ -221,14 +222,14 @@ export default function KelolaPesanan() {
                         <div className="flex justify-between"><span className="text-gray-400 font-medium">Jumlah:</span><span className="font-black text-[#2DAB80]">{item.jumlah_item} Pokok</span></div>
                       </div>
                       <div className="flex gap-2 w-full pt-1">
-                        {item.status === 'Pending' && (
+                        {(item.status === 'Pending' || item.status === 'PENDING') && (
                           <>
-                            <button onClick={() => ubahStatusPesanan(item.id_penjualan, 'Diproses')} className="flex-1 bg-[#2DAB80] text-white font-black text-[10px] py-2.5 rounded-xl uppercase flex items-center justify-center gap-1"><FiCheckCircle /> Terima</button>
-                            <button onClick={() => ubahStatusPesanan(item.id_penjualan, 'Batal')} className="flex-1 bg-rose-500 text-white font-black text-[10px] py-2.5 rounded-xl uppercase flex items-center justify-center gap-1"><FiXCircle /> Tolak</button>
+                            <button onClick={() => ubahStatusPesanan(item.id_penjualan, 'DIPROSES')} className="flex-1 bg-[#2DAB80] text-white font-black text-[10px] py-2.5 rounded-xl uppercase flex items-center justify-center gap-1"><FiCheckCircle /> Terima</button>
+                            <button onClick={() => ubahStatusPesanan(item.id_penjualan, 'BATAL')} className="flex-1 bg-rose-500 text-white font-black text-[10px] py-2.5 rounded-xl uppercase flex items-center justify-center gap-1"><FiXCircle /> Tolak</button>
                           </>
                         )}
-                        {item.status === 'Diproses' && (
-                          <button onClick={() => ubahStatusPesanan(item.id_penjualan, 'Selesai')} className="w-full bg-blue-600 text-white font-black text-[10px] py-2.5 rounded-xl uppercase flex items-center justify-center gap-1"><FiCheckCircle /> Selesai</button>
+                        {(item.status === 'Diproses' || item.status === 'DIPROSES') && (
+                          <button onClick={() => ubahStatusPesanan(item.id_penjualan, 'SELESAI')} className="w-full bg-blue-600 text-white font-black text-[10px] py-2.5 rounded-xl uppercase flex items-center justify-center gap-1"><FiCheckCircle /> Selesai</button>
                         )}
                       </div>
                     </div>

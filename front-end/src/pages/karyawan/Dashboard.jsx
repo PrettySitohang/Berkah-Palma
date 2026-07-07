@@ -1,295 +1,671 @@
-import { AiOutlineInbox, AiOutlineSearch } from "react-icons/ai"; 
-import { CgDanger } from "react-icons/cg"; 
-import React, { useState, useEffect } from 'react';
-import Header from '../../components/Header'
-import Bg from '../../../public/img/foto_bibit_sawit_1.png';
-import Logo from "../../../public/img/Logo.png";
-import Sidebar from "../../components/Sidebar";
+import { useState, useEffect, useMemo } from "react";
+import { AiOutlineInbox } from "react-icons/ai";
+import { CgDanger } from "react-icons/cg";
+import {
+  FiUsers,
+  FiPackage,
+  FiShoppingBag,
+  FiAlertTriangle,
+  FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
+} from "react-icons/fi";
+import React from "react";
+import Header from "../../components/Header";
+import bgHero from "../../assets/foto_bibit_sawit.png";
+
+const API_BASE = "http://127.0.0.1:8000/api";
+
+const NAMA_BULAN = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "Mei",
+  "Jun",
+  "Jul",
+  "Agu",
+  "Sep",
+  "Okt",
+  "Nov",
+  "Des",
+];
+const DONUT_WARNA = ["#5B7F52", "#8C8672", "#A3491F", "#C9A24B", "#4B6B8C"];
+
+// Bentuk data kosong dipakai sebagai default sebelum fetch selesai / kalau fetch gagal,
+// supaya semua akses field di JSX aman tanpa optional chaining berantai.
+const DATA_KOSONG = {
+  total_stok: 0,
+  total_jual_bulan_ini: 0,
+  total_afkir_bulan_ini: 0,
+  total_varietas: 0,
+  staf_aktif: 0,
+  pesanan_bulan_ini: 0,
+  varietas_kritis_count: 0,
+  rincian_varietas: [],
+  tren_bulanan: [],
+  aktivitas_terakhir: [],
+};
 
 export default function Dashboard() {
-  const [data, setData] = useState({
-    total_stok_keseluruhan: 0,
-    total_masuk: 0,
-    total_terjual: 0,
-    rincian_varietas: [],
-    alert_kritis: null
-  });
-  const [loading, setLoading] = useState(true);
-  
-  // State untuk mengontrol input pencarian
-  const [searchQuery, setSearchQuery] = useState("");
+  const [mode, setMode] = useState("bulan"); // "bulan" | "semua"
+  const [bulan, setBulan] = useState(new Date().getMonth());
+  const [tahun, setTahun] = useState(new Date().getFullYear());
+  const [tahunTampil, setTahunTampil] = useState(new Date().getFullYear());
+  const [periodOpen, setPeriodOpen] = useState(false);
+  const [varietasOpen, setVarietasOpen] = useState(false);
 
+  // Filter varietas disimpan sebagai id (bukan nama) supaya bisa dikirim langsung ke API.
+  const [daftarVarietas, setDaftarVarietas] = useState([]);
+  const [varietasFilterId, setVarietasFilterId] = useState(null);
+
+  const [data, setData] = useState(DATA_KOSONG);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const periodLabel =
+    mode === "semua" ? "Semua Waktu" : `${NAMA_BULAN[bulan]} ${tahun}`;
+
+  const varietasFilterLabel = varietasFilterId
+    ? daftarVarietas.find((v) => v.id_varietas === varietasFilterId)
+        ?.nama_varietas || "Semua Varietas"
+    : "Semua Varietas";
+
+  // Ambil daftar varietas sekali di awal, buat isi dropdown filter.
   useEffect(() => {
-    // Jalankan fetch data saat halaman dimuat
-    fetch('http://localhost:8000/api/dashboard') // Sesuaikan dengan URL API Laravel kamu
-      .then(res => res.json())
-      .then(resData => {
-        // PERBAIKAN 1: Memastikan jika API mengembalikan data kosong atau null, fallback ke array kosong
-        setData({
-          total_stok_keseluruhan: resData?.total_stok_keseluruhan || 0,
-          total_masuk: resData?.total_masuk || 0,
-          total_terjual: resData?.total_terjual || 0,
-          rincian_varietas: resData?.rincian_varietas || [],
-          alert_kritis: resData?.alert_kritis || null
-        });
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Gagal mengambil data stok:", err);
-        setLoading(false);
-      });
+    fetch(`${API_BASE}/varietas-bibit`)
+      .then((res) => res.json())
+      .then((list) => setDaftarVarietas(Array.isArray(list) ? list : []))
+      .catch((err) => console.error("Gagal mengambil daftar varietas:", err));
   }, []);
 
-  if (loading) {
-    return <div className="min-h-screen bg-[#294D29] text-white flex items-center justify-center font-sans">Memuat Data Stok...</div>;
-  }
+  // Ambil data dashboard tiap kali filter periode/varietas berubah.
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
 
-  // PERBAIKAN 2: Menggunakan Optional Chaining (?.) agar filter tidak error jika array bernilai undefined/null
-  const filteredVarietas = (data?.rincian_varietas || []).filter((varietas) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      (varietas?.nama?.toLowerCase() || "").includes(query) ||
-      (varietas?.umur?.toString() || "").includes(query) ||
-      (varietas?.status?.toLowerCase() || "").includes(query)
-    );
-  });
+    const params = new URLSearchParams();
+    if (mode === "semua") {
+      params.set("semua", "1");
+    } else {
+      params.set("bulan", String(bulan + 1)); // input user 0-indexed, backend 1-indexed
+      params.set("tahun", String(tahun));
+    }
+    if (varietasFilterId) params.set("id_varietas", varietasFilterId);
+
+    fetch(`${API_BASE}/dashboard?${params.toString()}`)
+      .then((res) => res.json())
+      .then((res) => {
+        if (!res.success) throw new Error(res.message || "Gagal mengambil data.");
+        setData({ ...DATA_KOSONG, ...res.data });
+      })
+      .catch((err) => {
+        console.error("Gagal mengambil data dashboard:", err);
+        setError("Gagal memuat data dashboard. Pastikan server backend menyala.");
+      })
+      .finally(() => setLoading(false));
+  }, [mode, bulan, tahun, varietasFilterId]);
+
+  const rincianVarietas = data.rincian_varietas;
+  const trenBulanan = data.tren_bulanan;
+  const varietasKritisPertama = rincianVarietas.find((v) => v.status === "kritis");
+
+  const totalSisaDonut = useMemo(
+    () => rincianVarietas.reduce((s, d) => s + (d.stok || 0), 0),
+    [rincianVarietas]
+  );
+  const trenMax = useMemo(
+    () =>
+      Math.max(1, ...trenBulanan.flatMap((t) => [t.jual || 0, t.afkir || 0])),
+    [trenBulanan]
+  );
+
+  const R = 60,
+    C = 2 * Math.PI * R;
+  let offsetAkumulasi = 0;
 
   return (
-    <div 
-      className="min-h-screen pb-16 font-sans selection:bg-[#2DAB80] selection:text-white relative bg-fixed bg-cover bg-center"
-      style={{ backgroundImage: `url(${Bg})` }}
+    <div
+      className="min-h-screen relative font-sans text-slate-800 pb-20"
+      style={{ fontFamily: '"Poppins", sans-serif' }}
     >
-        <Sidebar/>
-      {/* Overlay Backdrop */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-white/80 to-gray-50/95 pointer-events-none z-0" />
+      <Header />
 
-      <div className="relative z-10">
-        <Header />
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="fixed inset-0 -z-10">
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: `url(${bgHero})`,
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(68,96,68,.72) 0%, rgba(68,96,68,.46) 3%, rgba(255,255,255,.62) 54%, rgba(255,255,255,1) 120%)",
+            }}
+          />
+        </div>
+      </div>
+      <div className="relative font-sans selection:bg-[#5B7F52] selection:text-white pb-10">
+        <div className="bg-[#294D29] text-white px-6 pt-4 pb-16 rounded-bl-[60px] rounded-br-none shadow-md relative z-10 -mt-1">
+          <h1 className="text-3xl font-bold tracking-wide">Overview</h1>
+          <h2 className="text-3xl font-bold tracking-wide mt-1">Stok Bibit</h2>
+          <p className="text-xs text-white/50 mt-2 font-mono tracking-wide">
+            Periode: {data.periode?.label || periodLabel}
+          </p>
 
-        {/* --- SECTION 1: RESPONSIVE HEADER AREA --- */}
-        <div className="bg-[#294D29]/95 text-white px-6 md:px-12 pt-6 pb-24 md:pb-28 rounded-bl-[40px] md:rounded-bl-[80px] shadow-lg relative z-10 -mt-1 backdrop-blur-sm">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:justify-between md:items-center gap-6">
-            
-            {/* Sisi Kiri: Branding & Info */}
-            <div className="flex items-center gap-4 border-b md:border-b-0 border-white/10 pb-4 md:pb-0">
-              <img 
-                src={Logo} 
-                alt="Logo" 
-                className="w-12 h-12 object-contain rounded-full bg-white p-1 shadow-md"
-              />
-              <div>
-                <h1 className="text-xl md:text-2xl font-black tracking-widest uppercase">Berkah Palma</h1>
-                <p className="text-[11px] text-gray-300 font-medium uppercase tracking-wider">Internal Stok Management</p>
-              </div>
+          <div className="flex flex-wrap gap-3 mt-6">
+            {/* Dropdown periode */}
+            <div className="relative">
+              <button
+                onClick={() => setPeriodOpen(!periodOpen)}
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/15 text-white text-xs font-bold px-4 py-2 rounded-full border border-white/15 transition-colors cursor-pointer"
+              >
+                {periodLabel}
+                <FiChevronDown
+                  className={`transition-transform ${periodOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {periodOpen && (
+                <div className="absolute left-0 top-full mt-2 w-64 bg-[#FBF9F4] rounded-2xl shadow-xl border border-[#8C8672]/20 p-4 z-50">
+                  <button
+                    onClick={() => {
+                      setMode("semua");
+                      setPeriodOpen(false);
+                    }}
+                    className={`w-full text-left text-xs font-bold px-3 py-2.5 rounded-lg mb-3 transition-colors cursor-pointer ${mode === "semua" ? "bg-[#24391F] text-white" : "text-[#20241D] hover:bg-[#8C8672]/10"}`}
+                  >
+                    Semua Waktu
+                  </button>
+
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <button
+                      onClick={() => setTahunTampil((t) => t - 1)}
+                      className="text-[#8C8672] hover:text-[#20241D] p-1 cursor-pointer"
+                    >
+                      <FiChevronLeft />
+                    </button>
+                    <span className="text-xs font-bold text-[#20241D] font-mono">
+                      {tahunTampil}
+                    </span>
+                    <button
+                      onClick={() => setTahunTampil((t) => t + 1)}
+                      className="text-[#8C8672] hover:text-[#20241D] p-1 cursor-pointer"
+                    >
+                      <FiChevronRight />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {NAMA_BULAN.map((nm, idx) => {
+                      const aktif =
+                        mode === "bulan" &&
+                        bulan === idx &&
+                        tahun === tahunTampil;
+                      return (
+                        <button
+                          key={nm}
+                          onClick={() => {
+                            setBulan(idx);
+                            setTahun(tahunTampil);
+                            setMode("bulan");
+                            setPeriodOpen(false);
+                          }}
+                          className={`text-[11px] font-bold py-2 rounded-lg transition-colors cursor-pointer ${aktif ? "bg-[#5B7F52] text-white" : "text-[#6B665A] hover:bg-[#8C8672]/10"}`}
+                        >
+                          {nm}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Sisi Kanan: Judul Menu & Update */}
-            <div className="text-left md:text-right space-y-1">
-              <div className="flex items-baseline md:justify-end gap-2">
-                <h2 className="text-3xl font-black tracking-tight">Overview</h2>
-                <span className="text-xl font-light text-gray-300">Stok</span>
-              </div>
-              <p className="text-xs text-gray-300 font-medium bg-white/10 inline-block px-4 py-1.5 rounded-full backdrop-blur-sm">
-                Terakhir Diperbarui: 1 Juni 2026, 10:38 WIB
-              </p>
-            </div>
+            {/* Dropdown varietas */}
+            <div className="relative">
+              <button
+                onClick={() => setVarietasOpen(!varietasOpen)}
+                className="flex items-center gap-2 bg-transparent hover:bg-white/10 text-white/70 hover:text-white text-xs font-semibold px-4 py-2 rounded-full border border-white/15 transition-colors cursor-pointer"
+              >
+                {varietasFilterLabel}
+                <FiChevronDown
+                  className={`transition-transform ${varietasOpen ? "rotate-180" : ""}`}
+                />
+              </button>
 
+              {varietasOpen && (
+                <div className="absolute left-0 top-full mt-2 w-56 bg-[#FBF9F4] rounded-2xl shadow-xl border border-[#8C8672]/20 p-2 max-h-72 overflow-y-auto z-50">
+                  <button
+                    onClick={() => {
+                      setVarietasFilterId(null);
+                      setVarietasOpen(false);
+                    }}
+                    className={`w-full text-left text-xs font-bold px-3 py-2.5 rounded-lg transition-colors cursor-pointer ${!varietasFilterId ? "bg-[#24391F] text-white" : "text-[#20241D] hover:bg-[#8C8672]/10"}`}
+                  >
+                    Semua Varietas
+                  </button>
+                  {daftarVarietas.map((v) => (
+                    <button
+                      key={v.id_varietas}
+                      onClick={() => {
+                        setVarietasFilterId(v.id_varietas);
+                        setVarietasOpen(false);
+                      }}
+                      className={`w-full text-left text-xs font-bold px-3 py-2.5 rounded-lg transition-colors cursor-pointer ${varietasFilterId === v.id_varietas ? "bg-[#24391F] text-white" : "text-[#20241D] hover:bg-[#8C8672]/10"}`}
+                    >
+                      {v.nama_varietas}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* --- MAIN CONTAINER (GRID RESPONSIF) --- */}
-        <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-10 md:-mt-14 relative z-20">
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 items-start">
-            
-            {/* KOLOM UTAMA & DAFTAR VARIETAS */}
-            <div className="lg:col-span-2 space-y-6">
-              
-              {/* Card Sisa Stok Keseluruhan */}
-              <div className="bg-white/95 rounded-[32px] p-6 md:p-8 shadow-xl border border-gray-100 relative overflow-hidden backdrop-blur-sm group hover:border-[#2DAB80]/30 transition-all">
-                <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#2DAB80]/10 rounded-full group-hover:scale-110 transition-transform duration-500" />
-                
-                <div className="flex justify-between items-start relative z-10">
-                  <div className="space-y-1">
-                    <span className="text-[#A8AFBB] font-bold text-xs md:text-sm tracking-wider uppercase block">
-                      Sisa Stok Keseluruhan
-                    </span>
-                    <h3 className="text-5xl md:text-6xl font-black text-[#020202] tracking-tighter py-2">
-                      {(data?.total_stok_keseluruhan || 0).toLocaleString('id-ID')} <span className="text-lg md:text-xl text-gray-400 font-medium tracking-normal">Pokok</span>
-                    </h3>
-                  </div>
-                  <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-inner">
-                    <span className="text-2xl text-[#2DAB80]"><AiOutlineInbox /></span>
-                  </div>
-                </div>
+        <div className="px-5 lg:px-8 pt-4 max-w-7xl mx-auto space-y-5">
+          {error && (
+            <div className="bg-[#FBF9F4] border border-[#A3491F]/30 text-[#A3491F] text-sm font-semibold rounded-2xl p-4">
+              {error}
+            </div>
+          )}
 
-                <div className="inline-flex items-center gap-2 bg-[#ECFDF5] text-[#2DAB80] text-xs font-bold px-4 py-2 rounded-full relative z-10 shadow-sm">
-                  <span className="w-2 h-2 rounded-full bg-[#2DAB80] animate-pulse"></span>
-                  +12% vs Bulan lalu
-                </div>
+          {/* KPI utama */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-[#24391F] text-white rounded-2xl p-5 shadow-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-white/60 font-bold text-[11px] tracking-wide uppercase">
+                  Sisa Stok
+                </span>
+                <AiOutlineInbox className="text-white/60" />
               </div>
-
-              {/* Utility Bar (Search & Filter) */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-                    <AiOutlineSearch className="text-lg" />
-                  </span>
-                  <input 
-                    type="text" 
-                    placeholder="Cari varietas, umur bibit, atau status..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3.5 bg-white rounded-full text-sm text-black shadow-md border border-gray-100 focus:outline-none focus:ring-2 focus:ring-[#2DAB80]/40 transition-shadow"
-                  />
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  <button className="flex-1 sm:flex-initial bg-white text-[#294D29] text-xs font-bold px-6 py-3.5 rounded-full shadow-md hover:bg-gray-50 border border-gray-100 active:scale-95 transition-all">
-                    Juni 2026
-                  </button>
-                  <button className="flex-1 sm:flex-initial bg-[#C5A830] text-white text-xs font-bold px-6 py-3.5 rounded-full shadow-md hover:bg-[#A88E25] active:scale-95 transition-all whitespace-nowrap">
-                    Pilih Varietas
-                  </button>
-                </div>
+              <h3 className="text-3xl font-black my-2 font-mono tracking-tight">
+                {loading ? "…" : data.total_stok.toLocaleString("id-ID")}
+              </h3>
+              <div className="text-[11px] font-bold text-[#9CC28A]">
+                Total bibit siap jual
               </div>
-
-              {/* DAFTAR VARIETAS DARI DATABASE */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center pl-2">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Rincian Per Varietas</h4>
-                  <span className="text-xs text-gray-500 font-medium hidden sm:block">
-                    Total: {filteredVarietas.length} Varietas Ditemukan
-                  </span>
-                </div>
-
-                {filteredVarietas.map((varietas, index) => (
-                  <div 
-                    key={index}
-                    className={`bg-white/95 rounded-[24px] p-6 shadow-md backdrop-blur-sm group hover:shadow-xl transition-all duration-300 border ${
-                      varietas?.status === 'Kritis' ? 'border-2 border-red-200' : 'border-gray-100 hover:border-[#2DAB80]/20'
-                    }`}
-                  >
-                    <div className="md:flex md:items-center md:justify-between gap-6">
-                      <div className="md:w-1/3 space-y-1">
-                        <h5 className={`font-extrabold text-lg tracking-tight transition-colors ${
-                          varietas?.status === 'Kritis' ? 'text-red-950' : 'text-[#020202] group-hover:text-[#294D29]'
-                        }`}>
-                          {varietas?.nama}
-                        </h5>
-                        <span className="text-[10px] font-bold text-[#A8AFBB] tracking-wider uppercase bg-gray-100 px-2.5 py-0.5 rounded-md inline-block">
-                          UMUR {varietas?.umur} BULAN
-                        </span>
-                      </div>
-                      
-                      <div className={`grid grid-cols-4 gap-2 text-center my-4 md:my-0 flex-1 md:border-x md:px-6 ${
-                        varietas?.status === 'Kritis' ? 'border-red-100' : 'border-gray-100'
-                      }`}>
-                        <div>
-                          <span className="text-[10px] font-semibold text-gray-400 block uppercase">Awal</span>
-                          <span className="text-sm font-bold text-gray-700">{(varietas?.awal || 0).toLocaleString('id-ID')}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-semibold text-gray-400 block uppercase">Masuk</span>
-                          <span className={`text-sm font-bold ${varietas?.status === 'Kritis' ? 'text-gray-700' : 'text-[#2DAB80]'}`}>
-                            {varietas?.masuk > 0 ? `+${varietas.masuk.toLocaleString('id-ID')}` : '0'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-semibold text-gray-400 block uppercase">Jual</span>
-                          <span className="text-sm font-bold text-gray-700">-{(varietas?.jual || 0).toLocaleString('id-ID')}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-semibold text-gray-400 block uppercase">Afkir</span>
-                          <span className="text-sm font-bold text-[#F9303B]">-{(varietas?.afkir || 0).toLocaleString('id-ID')}</span>
-                        </div>
-                      </div>
-                      
-                      <div className={`flex md:flex-col justify-between items-center md:items-end gap-3 md:w-1/4 pt-3 md:pt-0 border-t md:border-t-0 ${
-                        varietas?.status === 'Kritis' ? 'border-red-100' : 'border-gray-100'
-                      }`}>
-                        <span className={`text-xs font-bold px-3 py-1 rounded-full border shadow-sm md:order-2 ${
-                          varietas?.status === 'Kritis' ? 'bg-red-50 text-[#F9303B] border-red-100' : 'bg-emerald-50 text-[#2DAB80] border-emerald-100'
-                        }`}>
-                          {varietas?.status}
-                        </span>
-                        <div className="text-right md:order-1">
-                          <span className="text-[10px] font-medium text-gray-400 block">Sisa Stok</span>
-                          <span className={`text-lg font-black ${varietas?.status === 'Kritis' ? 'text-[#F9303B]' : 'text-[#020202]'}`}>
-                            {(varietas?.sisa || 0).toLocaleString('id-ID')} <span className={`text-xs font-normal ${varietas?.status === 'Kritis' ? 'text-red-500' : 'text-gray-500'}`}>Pkk</span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {filteredVarietas.length === 0 && (
-                  <div className="bg-white/80 rounded-[24px] p-8 text-center text-gray-500 shadow-sm border border-gray-100">
-                    Tidak ada varietas yang cocok dengan kata kunci "{searchQuery}".
-                  </div>
-                )}
-
-              </div>
-
             </div>
 
-            {/* KOLOM KANAN ALERTS & QUICK STATS */}
-            <div className="space-y-6 lg:sticky lg:top-24">
-              
-              {data?.alert_kritis && (
-                <div className="bg-white/95 rounded-[28px] p-5 shadow-lg border-2 border-[#F9303B] flex flex-col gap-4 backdrop-blur-sm hover:shadow-xl transition-all">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center shrink-0 shadow-inner">
-                      <span className="text-[#F9303B] text-2xl font-bold"><CgDanger /></span>
-                    </div>
-                    <div>
-                      <h4 className="text-[#F9303B] font-black text-base tracking-wide uppercase">Stok Kritis!!</h4>
-                      <span className="text-[10px] font-bold text-gray-400 block uppercase">Tindakan Diperlukan</span>
-                    </div>
-                  </div>
-                  
-                  <p className="text-[#646464] text-xs font-medium leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">
-                    <span className="font-bold text-gray-800">{data.alert_kritis?.nama} ({data.alert_kritis?.umur} Bulan)</span> sisa {data.alert_kritis?.sisa} bibit. Harap mutasi kecambah untuk menyeimbangkan inventaris.
-                  </p>
-                  
-                  <button className="w-full bg-red-50 hover:bg-red-100 text-[#F9303B] text-xs font-bold py-3 rounded-xl border border-red-100 shadow-sm transition-colors active:scale-95">
-                    Cek Detail Log Kritis
-                  </button>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-                
-                {/* Card Masuk */}
-                <div className="bg-white/95 rounded-2xl p-5 shadow-md border border-gray-100 backdrop-blur-sm hover:border-[#3c8bcc]/30 transition-colors">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#A8AFBB] font-bold text-xs tracking-wider uppercase">Masuk</span>
-                    <span className="text-xs font-bold text-[#3c8bcc] bg-[#3c8bcc]/10 px-2 py-0.5 rounded">60% Target</span>
-                  </div>
-                  <span className="text-3xl font-black text-[#020202] block mt-2">{(data?.total_masuk || 0).toLocaleString('id-ID')}</span>
-                  <div className="w-full bg-gray-100 h-1.5 rounded-full mt-4 overflow-hidden relative">
-                    <div className="bg-[#3c8bcc] h-full rounded-full w-[60%]" />
-                  </div>
-                </div>
-
-                {/* Card Terjual */}
-                <div className="bg-white/95 rounded-2xl p-5 shadow-md border border-gray-100 backdrop-blur-sm hover:border-[#C5A830]/30 transition-colors">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#A8AFBB] font-bold text-xs tracking-wider uppercase">Terjual</span>
-                    <span className="text-xs font-bold text-[#C5A830] bg-[#C5A830]/10 px-2 py-0.5 rounded">45% Rasio</span>
-                  </div>
-                  <span className="text-3xl font-black text-[#020202] block mt-2">{(data?.total_terjual || 0).toLocaleString('id-ID')}</span>
-                  <div className="w-full bg-gray-100 h-1.5 rounded-full mt-4 overflow-hidden relative">
-                    <div className="bg-[#C5A830] h-full rounded-full w-[45%]" />
-                  </div>
-                </div>
-
-              </div>
-
+            <div className="bg-[#FBF9F4] rounded-2xl p-5 shadow-sm border border-[#8C8672]/20">
+              <span className="text-[#8C8672] font-bold text-[11px] tracking-wider uppercase">
+                Terjual
+              </span>
+              <span className="text-3xl font-black text-[#20241D] font-mono block mt-2">
+                {loading ? "…" : data.total_jual_bulan_ini.toLocaleString("id-ID")}
+              </span>
+              <span className="text-[11px] font-medium text-[#8C8672]">
+                {data.periode?.label || periodLabel}
+              </span>
             </div>
 
+            <div className="bg-[#FBF9F4] rounded-2xl p-5 shadow-sm border border-[#A3491F]/20">
+              <span className="text-[#8C8672] font-bold text-[11px] tracking-wider uppercase">
+                Afkir
+              </span>
+              <span className="text-3xl font-black text-[#A3491F] font-mono block mt-2">
+                {loading ? "…" : data.total_afkir_bulan_ini.toLocaleString("id-ID")}
+              </span>
+              <span className="text-[11px] font-medium text-[#8C8672]">
+                {data.periode?.label || periodLabel}
+              </span>
+            </div>
+
+            <div className="bg-[#FBF9F4] rounded-2xl p-5 shadow-sm border border-[#8C8672]/20">
+              <span className="text-[#8C8672] font-bold text-[11px] tracking-wider uppercase">
+                Pesanan
+              </span>
+              <span className="text-3xl font-black text-[#20241D] font-mono block mt-2">
+                {loading ? "…" : data.pesanan_bulan_ini.toLocaleString("id-ID")}
+              </span>
+              <span className="text-[11px] font-medium text-[#8C8672]">
+                {data.periode?.label || periodLabel}
+              </span>
+            </div>
           </div>
 
+          {/* Ringkasan sekunder */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-[#FBF9F4] rounded-xl p-4 shadow-sm border border-[#8C8672]/20 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#24391F]/5 flex items-center justify-center text-lg shrink-0 text-[#24391F]">
+                <FiPackage />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold tracking-wider uppercase block text-[#8C8672]">
+                  Total Varietas
+                </span>
+                <span className="text-lg font-black font-mono text-[#20241D]">
+                  {loading ? "…" : data.total_varietas}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-[#FBF9F4] rounded-xl p-4 shadow-sm border border-[#8C8672]/20 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#24391F]/5 flex items-center justify-center text-lg shrink-0 text-[#24391F]">
+                <FiUsers />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold tracking-wider uppercase block text-[#8C8672]">
+                  Staf Aktif
+                </span>
+                <span className="text-lg font-black font-mono text-[#20241D]">
+                  {loading ? "…" : data.staf_aktif}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-[#FBF9F4] rounded-xl p-4 shadow-sm border border-[#8C8672]/20 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#24391F]/5 flex items-center justify-center text-lg shrink-0 text-[#24391F]">
+                <FiShoppingBag />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold tracking-wider uppercase block text-[#8C8672]">
+                  Pesanan {mode === "semua" ? "" : "Bulan Ini"}
+                </span>
+                <span className="text-lg font-black font-mono text-[#20241D]">
+                  {loading ? "…" : data.pesanan_bulan_ini}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-[#FBF9F4] rounded-xl p-4 shadow-sm border border-[#8C8672]/20 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#24391F]/5 flex items-center justify-center text-lg shrink-0 text-[#24391F]">
+                <FiAlertTriangle />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold tracking-wider uppercase block text-[#8C8672]">
+                  Varietas Kritis
+                </span>
+                <span className="text-lg font-black font-mono text-[#20241D]">
+                  {loading ? "…" : data.varietas_kritis_count}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Banner Stok Kritis — hanya muncul kalau memang ada varietas kritis */}
+          {varietasKritisPertama && (
+            <div className="bg-[#FBF9F4] rounded-2xl p-4 sm:p-5 shadow-sm border-l-4 border-[#A3491F] flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+              <div className="flex items-start gap-3 flex-1">
+                <CgDanger className="text-[#A3491F] text-2xl mt-0.5 shrink-0" />
+                <div>
+                  <h4 className="text-[#A3491F] font-black text-base tracking-wide">
+                    Stok Kritis
+                  </h4>
+                  <p className="text-[#6B665A] text-xs font-medium leading-relaxed mt-0.5">
+                    {varietasKritisPertama.nama_varietas} (
+                    {varietasKritisPertama.umur_bulan} Bulan) sisa{" "}
+                    {varietasKritisPertama.stok.toLocaleString("id-ID")} bibit.
+                    Harap mutasi kecambah
+                    {data.varietas_kritis_count > 1
+                      ? ` — ${data.varietas_kritis_count - 1} varietas lain juga kritis.`
+                      : "."}
+                  </p>
+                </div>
+              </div>
+              <button className="text-[#A3491F] text-xs font-bold py-2.5 px-6 rounded-lg border border-[#A3491F]/30 hover:bg-[#A3491F]/5 transition-colors whitespace-nowrap cursor-pointer">
+                Cek Detail
+              </button>
+            </div>
+          )}
+
+          {/* Grafik tren + Donut komposisi */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            <div className="lg:col-span-3 bg-[#FBF9F4] rounded-2xl shadow-sm border border-[#8C8672]/20 p-5">
+              <div className="flex items-center justify-between mb-5">
+                <h5 className="font-extrabold text-[#20241D] text-base tracking-tight">
+                  Tren 6 Bulan
+                </h5>
+                <div className="flex items-center gap-4 text-[11px] font-bold text-[#8C8672]">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#5B7F52]" /> Jual
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#A3491F]" /> Afkir
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-6 gap-3 items-end h-40">
+                {trenBulanan.map((t, idx) => (
+                  <div
+                    key={`${t.bulan}-${t.tahun}-${idx}`}
+                    className="flex flex-col items-center gap-1.5 h-full justify-end"
+                  >
+                    <div className="flex gap-1 items-end h-full w-full justify-center">
+                      <div
+                        className="w-2.5 bg-[#5B7F52] rounded-t"
+                        style={{ height: `${(t.jual / trenMax) * 100}%` }}
+                      />
+                      <div
+                        className="w-2.5 bg-[#A3491F] rounded-t"
+                        style={{ height: `${(t.afkir / trenMax) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-bold text-[#8C8672]">
+                      {t.bulan}
+                    </span>
+                  </div>
+                ))}
+                {!loading && trenBulanan.length === 0 && (
+                  <div className="col-span-6 text-center text-xs text-[#8C8672] font-medium">
+                    Belum ada data transaksi.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="lg:col-span-2 bg-[#FBF9F4] rounded-2xl shadow-sm border border-[#8C8672]/20 p-5">
+              <h5 className="font-extrabold text-[#20241D] text-base tracking-tight mb-4">
+                Komposisi Stok
+              </h5>
+              {totalSisaDonut > 0 ? (
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  <svg
+                    viewBox="0 0 160 160"
+                    className="w-40 h-40 shrink-0 -rotate-90"
+                  >
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r={R}
+                      fill="none"
+                      stroke="#8C8672"
+                      strokeOpacity="0.12"
+                      strokeWidth="18"
+                    />
+                    {rincianVarietas.map((d, i) => {
+                      const porsi = (d.stok || 0) / totalSisaDonut;
+                      const dash = porsi * C;
+                      const el = (
+                        <circle
+                          key={d.id_varietas}
+                          cx="80"
+                          cy="80"
+                          r={R}
+                          fill="none"
+                          stroke={DONUT_WARNA[i % DONUT_WARNA.length]}
+                          strokeWidth="18"
+                          strokeDasharray={`${dash} ${C - dash}`}
+                          strokeDashoffset={-offsetAkumulasi}
+                          strokeLinecap="butt"
+                        />
+                      );
+                      offsetAkumulasi += dash;
+                      return el;
+                    })}
+                  </svg>
+                  <div className="space-y-2.5 w-full">
+                    {rincianVarietas.map((d, i) => (
+                      <div
+                        key={d.id_varietas}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <span className="flex items-center gap-2 text-[#20241D] font-medium">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{
+                              backgroundColor:
+                                DONUT_WARNA[i % DONUT_WARNA.length],
+                            }}
+                          />
+                          {d.nama_varietas}
+                        </span>
+                        <span className="font-mono font-bold text-[#6B665A]">
+                          {Math.round(((d.stok || 0) / totalSisaDonut) * 100)}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-xs text-[#8C8672] font-medium py-8">
+                  {loading ? "Memuat…" : "Belum ada stok tercatat."}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Detail Varietas */}
+          <div className="bg-[#FBF9F4] rounded-2xl shadow-sm border border-[#8C8672]/20 overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#8C8672]/15">
+              <h5 className="font-extrabold text-[#20241D] text-base tracking-tight">
+                Detail Varietas
+              </h5>
+            </div>
+
+            <table className="w-full hidden lg:table">
+              <thead>
+                <tr className="text-left text-[11px] font-bold text-[#8C8672] uppercase tracking-wider">
+                  <th className="px-5 py-3">Varietas</th>
+                  <th className="px-5 py-3">Umur</th>
+                  <th className="px-5 py-3 text-right">Jual</th>
+                  <th className="px-5 py-3 text-right">Afkir</th>
+                  <th className="px-5 py-3 text-right">Sisa</th>
+                  <th className="px-5 py-3 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono text-sm">
+                {rincianVarietas.map((v) => (
+                  <tr key={v.id_varietas} className="border-t border-[#8C8672]/10">
+                    <td className="px-5 py-4 font-sans font-bold text-[#20241D]">
+                      {v.nama_varietas}
+                    </td>
+                    <td className="px-5 py-4 font-sans text-[#6B665A]">
+                      {v.umur_bulan} Bulan
+                    </td>
+                    <td className="px-5 py-4 text-right text-[#6B665A]">
+                      -{(v.jual_bulan_ini || 0).toLocaleString("id-ID")}
+                    </td>
+                    <td className="px-5 py-4 text-right text-[#A3491F]">
+                      -{(v.afkir_bulan_ini || 0).toLocaleString("id-ID")}
+                    </td>
+                    <td className="px-5 py-4 text-right font-bold text-[#20241D]">
+                      {(v.stok || 0).toLocaleString("id-ID")}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <span
+                        className={`text-xs font-bold inline-flex items-center gap-1.5 ${v.status === "aman" ? "text-[#5B7F52]" : "text-[#A3491F]"}`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${v.status === "aman" ? "bg-[#5B7F52]" : "bg-[#A3491F]"}`}
+                        />
+                        {v.status === "aman" ? "Aman" : "Kritis"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                {!loading && rincianVarietas.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-8 text-center font-sans text-[#8C8672]">
+                      Tidak ada data varietas untuk filter ini.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            <div className="lg:hidden divide-y divide-[#8C8672]/15">
+              {rincianVarietas.map((v) => (
+                <div key={v.id_varietas} className="p-5 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h5 className="font-extrabold text-[#20241D] text-base tracking-tight">
+                        {v.nama_varietas}
+                      </h5>
+                      <span className="text-[10px] font-bold text-[#8C8672] tracking-wider block mt-0.5">
+                        UMUR {v.umur_bulan} BULAN
+                      </span>
+                    </div>
+                    <span
+                      className={`text-xs font-bold inline-flex items-center gap-1.5 ${v.status === "aman" ? "text-[#5B7F52]" : "text-[#A3491F]"}`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${v.status === "aman" ? "bg-[#5B7F52]" : "bg-[#A3491F]"}`}
+                      />
+                      {v.status === "aman" ? "Aman" : "Kritis"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center font-mono">
+                    <div>
+                      <span className="text-[11px] font-bold text-[#8C8672] block mb-1 font-sans">
+                        Jual
+                      </span>
+                      <span className="text-xs font-extrabold text-[#6B665A]">
+                        -{(v.jual_bulan_ini || 0).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-bold text-[#8C8672] block mb-1 font-sans">
+                        Afkir
+                      </span>
+                      <span className="text-xs font-extrabold text-[#A3491F]">
+                        -{(v.afkir_bulan_ini || 0).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-bold text-[#8C8672] block mb-1 font-sans">
+                        Sisa
+                      </span>
+                      <span className="text-xs font-extrabold text-[#20241D]">
+                        {(v.stok || 0).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!loading && rincianVarietas.length === 0 && (
+                <div className="p-8 text-center text-sm text-[#8C8672]">
+                  Tidak ada data varietas untuk filter ini.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Aktivitas Terakhir */}
+          <div className="bg-[#FBF9F4] rounded-2xl shadow-sm border border-[#8C8672]/20 p-5">
+            <h5 className="font-extrabold text-[#20241D] text-base tracking-tight mb-4">
+              Aktivitas Terakhir
+            </h5>
+            <div className="space-y-4">
+              {data.aktivitas_terakhir.map((a, i) => (
+                <div key={i} className="flex gap-3 text-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#5B7F52] mt-1.5 shrink-0" />
+                  <div>
+                    <p className="text-[#20241D] font-medium">{a.teks}</p>
+                    <span className="text-[11px] font-mono text-[#8C8672]">
+                      {a.waktu}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {!loading && data.aktivitas_terakhir.length === 0 && (
+                <p className="text-sm text-[#8C8672]">Belum ada aktivitas tercatat.</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

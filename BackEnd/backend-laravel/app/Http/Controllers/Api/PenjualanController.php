@@ -68,4 +68,29 @@ class PenjualanController extends Controller
             ], 500);
         }
     }
+
+    public function updateStatus(Request $request, $id)
+    {
+        try {
+            $status = $request->input('status');
+
+            if (empty($status)) {
+                return response()->json(["success" => false, "message" => "Missing status value"], 422);
+            }
+
+            $updated = DB::table('tb_penjualan')
+                ->where('id_penjualan', $id)
+                ->update(['status' => $status]);
+
+            if (!$updated) {
+                return response()->json(["success" => false, "message" => "Invoice not found or status unchanged"], 404);
+            }
+
+            $penjualan = DB::table('tb_penjualan')->where('id_penjualan', $id)->first();
+
+            return response()->json(["success" => true, "message" => "Status updated", "data" => $penjualan], 200);
+        } catch (\Exception $e) {
+            return response()->json(["success" => false, "message" => "Failed to update status: " . $e->getMessage()], 500);
+        }
+    }
 }

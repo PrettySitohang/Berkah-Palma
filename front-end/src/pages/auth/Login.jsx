@@ -103,7 +103,7 @@ export default function Login() {
                         />
                         <span className="font-bold text-[#2a4530] tracking-wide text-[15px]">BERKAH PALMA</span>
                     </div>
-                    <p className="text-slate-800 font-medium text-[14px]">Selamat Datang di Panel Admin</p>
+                    <p className="text-slate-800 font-medium text-[14px]">Selamat Datang</p>
                     <h1 className="text-[18px] font-black text-slate-900 mt-0.5">Berkah Palma Nursery</h1>
                 </div>
 
