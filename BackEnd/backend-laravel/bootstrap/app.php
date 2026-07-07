@@ -12,15 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // 1. Mengaktifkan Session, Cookie, dan Sanctum untuk API
-        $middleware->statefulApi();
-
-        // 2. Memaksa middleware Session agar benar-benar masuk ke rute API
+        // 1. Memaksa cookie dan session agar tersedia di rute API
         $middleware->api(append: [
+            \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
         ]);
 
-        // 3. Mengecualikan pengecekan CSRF untuk rute API
+        // 2. Mengecualikan pengecekan CSRF untuk rute API
         $middleware->validateCsrfTokens(except: [
             'api/*', 
         ]);
